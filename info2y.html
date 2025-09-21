@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infographic: วิเคราะห์ความคิดเห็นพนักงาน Petro Instrument</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;800&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Brilliant Blues -->
+    <!-- Application Structure Plan: The infographic is structured as a top-down narrative scroll. It starts with a high-level, attention-grabbing summary (overall sentiment and key stats), then drills down into a detailed thematic analysis (strengths vs. weaknesses), and finally presents actionable insights (employee suggestions). This logical flow guides the user from the "what" to the "why" and "what's next," making the complex qualitative data easy to digest in a single story. -->
+    <!-- Visualization & Content Choices: 1. Overall Sentiment (Goal: Inform) -> Donut Chart & Big Numbers (Chart.js/HTML). Justification: Provides an immediate, clear snapshot of the overall employee mood. 2. Thematic Breakdown (Goal: Compare) -> Stacked Horizontal Bar Chart (Chart.js). Justification: Effectively compares performance across different organizational themes, clearly showing the proportion of positive vs. negative feedback for each, highlighting strengths and areas for improvement. 3. Suggestions Analysis (Goal: Organize) -> Bar Chart & Styled HTML lists (Chart.js/HTML). Justification: Quantifies the types of suggestions while also presenting the qualitative details in a readable format, separating them from general feedback for clarity. All visualizations are rendered on Canvas. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #F0F4F8;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 450px;
+            max-height: 60vh;
+        }
+        .donut-chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 350px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 40vh;
+        }
+        .kpi-card {
+            background-color: #FFFFFF;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border-left: 5px solid #087E8B;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .section-card {
+             background-color: #FFFFFF;
+             border-radius: 1.25rem;
+             padding: 2rem;
+             box-shadow: 0 10px 20px rgba(0,0,0,0.07);
+        }
+        h1, h2, h3 {
+            color: #0B3954;
+        }
+        .brand-text { color: #087E8B; }
+        .accent-text-danger { color: #FF5A5F; }
+        .brand-bg { background-color: #0B3954; }
+        .accent-bg-danger { background-color: #FF5A5F; }
+        .icon-style {
+            font-size: 2rem;
+            line-height: 1;
+        }
+    </style>
+</head>
+<body class="text-gray-600">
+    <div class="container mx-auto p-4 md:p-12">
+        
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-2">เจาะลึกความคิดเห็นพนักงาน</h1>
+            <h2 class="text-2xl md:text-3xl font-bold brand-text">Petro Instrument 2025</h2>
+            <p class="max-w-3xl mx-auto mt-4 text-lg">สรุปภาพรวมความพึงพอใจ ประเด็นสำคัญ และข้อเสนอแนะจากพนักงานทุกระดับ เพื่อขับเคลื่อนองค์กรไปข้างหน้า</p>
+        </header>
+
+        <main class="space-y-12">
+
+            <section class="section-card">
+                 <h2 class="text-3xl font-bold text-center mb-8">ภาพรวมความรู้สึกของพนักงาน</h2>
+                 <p class="text-center max-w-2xl mx-auto mb-10">จากความคิดเห็นทั้งหมดที่รวบรวมได้ สามารถสรุปสัดส่วนระหว่างความคิดเห็นเชิงบวกและเชิงลบ ซึ่งเป็นดัชนีชี้วัดบรรยากาศโดยรวมภายในองค์กรได้อย่างชัดเจน</p>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                    <div class="donut-chart-container">
+                        <canvas id="sentimentChart"></canvas>
+                    </div>
+                    <div class="space-y-6">
+                        <div class="kpi-card">
+                            <h3 class="text-xl font-bold mb-2">ความคิดเห็นทั้งหมด</h3>
+                            <p id="totalComments" class="text-5xl font-extrabold text-gray-800">0</p>
+                        </div>
+                        <div class="kpi-card" style="border-left-color: #087E8B;">
+                            <h3 class="text-xl font-bold mb-2">เชิงบวก (Good Experience)</h3>
+                            <p id="goodComments" class="text-5xl font-extrabold brand-text">0</p>
+                        </div>
+                        <div class="kpi-card" style="border-left-color: #FF5A5F;">
+                            <h3 class="text-xl font-bold mb-2">เชิงลบ (Bad Experience)</h3>
+                            <p id="badComments" class="text-5xl font-extrabold accent-text-danger">0</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section-card">
+                <h2 class="text-3xl font-bold text-center mb-8">ประเด็นที่พนักงานพูดถึงมากที่สุด</h2>
+                <p class="text-center max-w-2xl mx-auto mb-10">วิเคราะห์ความคิดเห็นตามกรอบ "เป็น อยู่ คือ" เพื่อระบุว่าด้านใดเป็นจุดแข็งที่สร้างความประทับใจ และด้านใดที่องค์กรควรให้ความสำคัญเพื่อพัฒนาให้ดียิ่งขึ้น</p>
+                <div class="chart-container h-[600px] md:h-[500px]">
+                    <canvas id="thematicChart"></canvas>
+                </div>
+            </section>
+
+            <section class="section-card">
+                 <h2 class="text-3xl font-bold text-center mb-8">เสียงสะท้อนและข้อเสนอแนะ</h2>
+                 <p class="text-center max-w-2xl mx-auto mb-10">รวบรวมข้อเสนอแนะที่น่าสนใจจากพนักงาน เพื่อเป็นแนวทางในการพัฒนาและปรับปรุงองค์กรให้ตอบโจทย์ความต้องการของพนักงานทุกกลุ่ม</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                    <div class="bg-blue-50 p-6 rounded-2xl">
+                        <div class="icon-style brand-text mb-3">💡</div>
+                        <h3 class="text-xl font-bold mb-1">เพื่อดึงดูดคนรุ่นใหม่</h3>
+                        <p id="suggestionNewGen" class="text-4xl font-extrabold brand-text">0</p>
+                        <p>ข้อเสนอ</p>
+                    </div>
+                    <div class="bg-green-50 p-6 rounded-2xl">
+                         <div class="icon-style text-green-600 mb-3">👥</div>
+                        <h3 class="text-xl font-bold mb-1">เพื่อพนักงานปัจจุบัน</h3>
+                        <p id="suggestionCurrent" class="text-4xl font-extrabold text-green-600">0</p>
+                        <p>ข้อเสนอ</p>
+                    </div>
+                    <div class="bg-yellow-50 p-6 rounded-2xl">
+                         <div class="icon-style text-yellow-600 mb-3">⏳</div>
+                        <h3 class="text-xl font-bold mb-1">เพื่อการเตรียมเกษียณ</h3>
+                        <p id="suggestionRetire" class="text-4xl font-extrabold text-yellow-600">0</p>
+                        <p>ข้อเสนอ</p>
+                    </div>
+                </div>
+                <div class="mt-8">
+                     <h3 class="text-2xl font-bold text-center mb-6">ตัวอย่างข้อเสนอแนะที่น่าสนใจ</h3>
+                     <ul id="suggestionList" class="space-y-4 list-none max-w-4xl mx-auto">
+                     </ul>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        const rawData = [
+            { "theme": "อยู่ดีกินดี", "level": "Good Ex", "comment": "เลือกที่นี่เพราะสวัสดิการ สวัสดิการที่นี่ถือว่าดีมาก ถ้าเทียบกับที่อื่น" },
+            { "theme": "อยู่อย่างมี Passion", "level": "Good Ex", "comment": "ชอบออกแบบระบบ เสนอลูกค้า ไปแก้ไขปัญหาให้ลูกค้า" },
+            { "theme": "องค์กรมีนโยบายฯ", "level": "Bad Ex", "comment": "ไม่ชอบการเร่งเวลา ลูกค้าตามงานไวเกินไป" },
+            { "theme": "อยู่ในองค์กรที่ดี", "level": "Good Ex", "comment": "ทีมหรือเพื่อนร่วมงานก็ช่วยงานกัน" },
+            { "theme": "อยู่ในองค์กรที่ดี", "level": "Good Ex", "comment": "มีหัวหน้าคอยเทรนคอยสอน ถามอะไรก็ตอบตลอด" },
+            { "theme": "อยู่อย่างมี Passion", "level": "ข้อเสนอฯ รุ่นใหม่", "comment": "คนรุ่นใหม่มี growth mindset อยากทำอะไรต่อจากเดิมมากกว่าเดิม" },
+            { "theme": "อยู่ในสภาพแวดล้อมที่ดี", "level": "Good Ex", "comment": "ระบบงานที่นี่ดีมาก" },
+            { "theme": "อยู่ในตำแหน่งที่เหมาะสม", "level": "Bad Ex", "comment": "ทำงานกับคนมีอายุเยอะกว่า จะมีความเกรงใจ" },
+            { "theme": "อยู่ดีกินดี", "level": "ข้อเสนอฯ ปัจจุบัน", "comment": "อยากให้มีค่าเดินทางให้พนักงาน" },
+            { "theme": "อยู่ดีกินดี", "level": "ข้อเสนอฯ ปัจจุบัน", "comment": "อยากได้ที่จอดรถที่สะดวกกว่านี้" },
+            { "theme": "อยู่ในสภาพแวดล้อมที่ดี", "level": "ข้อเสนอฯ เกษียณ", "comment": "อยากให้มีการอบรมเรื่องการเกษียณ ควรมีการวางแผนตั้งแต่เนิ่นๆ" },
+            { "theme": "เป็นตัวตนที่แท้จริง", "level": "Good Ex", "comment": "สายงานตรงกับที่เดิมที่เคยทำอยู่" },
+            { "theme": "อยู่อย่างมี Passion", "level": "Good Ex", "comment": "เปิดโลกมากขึ้น แฮปปี้ ทีมนี้รับมาเปิดตลาดใหม่" },
+            { "theme": "เป็นตัวตนที่แท้จริง", "level": "Good Ex", "comment": "คนที่นี่เยียวยาจิตใจ เป็นมิตร เหมือนพี่เหมือนน้อง" },
+            { "theme": "อยู่ในสภาพแวดล้อมที่ดี", "level": "Bad Ex", "comment": "ไม่คุ้นชิน คือ ต้องรออนุมัติหลายขั้นตอน" },
+            { "theme": "อยู่ดีกินดี", "level": "Good Ex", "comment": "กองทุนสำรองเลี้ยงชีพ" },
+            { "theme": "เป็นสุขทางใจ", "level": "ข้อเสนอฯ รุ่นใหม่", "comment": "ควรถามตอนสัมภาษณ์เลยว่าองค์กรต้องการอะไรจากพนักงานใหม่" },
+            { "theme": "อยู่ในตำแหน่งที่เหมาะสม", "level": "ข้อเสนอฯ ปัจจุบัน", "comment": "อยากให้ Job Description ชัดเจนขึ้น" },
+            { "theme": "อยู่ในองค์กรที่ดี", "level": "Bad Ex", "comment": "บางทีหัวหน้างานเยอะ ไม่ได้มีเวลามาดูเรา" },
+            { "theme": "อยู่ในสภาพแวดล้อมที่ดี", "level": "Good Ex", "comment": "การเดินทางสะดวก ไม่อยู่ในเมืองมาก" },
+            { "theme": "เป็นสุขทางใจ", "level": "Good Ex", "comment": "เคยออกไปหาประสบการณ์แล้วกลับมาเพราะหัวหน้าชวน" },
+            { "theme": "อยู่ในองค์กรที่ดี", "level": "Good Ex", "comment": "ที่นี่โอเค เพื่อนร่วมงานดี" },
+            { "theme": "อยู่ดีกินดี", "level": "Good Ex", "comment": "สวัสดิการดี" },
+            { "theme": "อยู่ในตำแหน่งที่เหมาะสม", "level": "Good Ex", "comment": "ชอบที่เวลาทำงานหยืดหยุ่น" },
+            { "theme": "อยู่ในองค์กรที่ดี", "level": "Good Ex", "comment": "หัวหน้าดี ช่วยแก้ไขปัญหา ปรึกษาได้" },
+            { "theme": "อยู่ในสภาพแวดล้อมที่ดี", "level": "Bad Ex", "comment": "ไม่ชอบระบบอีเมล จำกัดพื้นที่ ไม่สามารถเก็บงานเก่าไว้ได้" },
+            { "theme": "เป็นตัวตนที่แท้จริง", "level": "ข้อเสนอฯ รุ่นใหม่", "comment": "ทำสื่อเว็บไซต์ให้ดูทันสมัย" },
+            { "theme": "อยู่ดีกินดี", "level": "ข้อเสนอฯ ปัจจุบัน", "comment": "ให้เพิ่มเบี้ยเลี้ยงมากขึ้น 300 บาทไม่พอ" },
+            { "theme": "อยู่ดีกินดี", "level": "ข้อเสนอฯ ปัจจุบัน", "comment": "อยากให้หยุดตามที่ราชการประกาศ" }
+        ];
+
+        function processData() {
+            const data = {
+                total: 0,
+                good: 0,
+                bad: 0,
+                themes: {},
+                suggestions: {
+                    newGen: { count: 0, samples: [] },
+                    current: { count: 0, samples: [] },
+                    retire: { count: 0, samples: [] }
+                }
+            };
+            
+            const themeNames = [...new Set(rawData.map(item => item.theme))];
+            themeNames.forEach(theme => {
+                data.themes[theme] = { good: 0, bad: 0 };
+            });
+
+            rawData.forEach(item => {
+                if (item.level === 'Good Ex') {
+                    data.good++;
+                    data.themes[item.theme].good++;
+                } else if (item.level === 'Bad Ex') {
+                    data.bad++;
+                    data.themes[item.theme].bad++;
+                } else if (item.level.includes('รุ่นใหม่')) {
+                    data.suggestions.newGen.count++;
+                    if (data.suggestions.newGen.samples.length < 2) data.suggestions.newGen.samples.push(item.comment);
+                } else if (item.level.includes('ปัจจุบัน')) {
+                    data.suggestions.current.count++;
+                     if (data.suggestions.current.samples.length < 2) data.suggestions.current.samples.push(item.comment);
+                } else if (item.level.includes('เกษียณ')) {
+                    data.suggestions.retire.count++;
+                     if (data.suggestions.retire.samples.length < 1) data.suggestions.retire.samples.push(item.comment);
+                }
+            });
+            data.total = data.good + data.bad;
+            return data;
+        }
+
+        function wrapLabel(label) {
+            const maxLength = 16;
+            if (label.length <= maxLength) return label;
+            
+            const words = label.split(' ');
+            const lines = [];
+            let currentLine = '';
+            
+            words.forEach(word => {
+                if ((currentLine + word).length > maxLength) {
+                    lines.push(currentLine.trim());
+                    currentLine = '';
+                }
+                currentLine += word + ' ';
+            });
+            lines.push(currentLine.trim());
+            return lines;
+        }
+
+        window.onload = function() {
+            const processedData = processData();
+
+            document.getElementById('totalComments').textContent = processedData.total;
+            document.getElementById('goodComments').textContent = processedData.good;
+            document.getElementById('badComments').textContent = processedData.bad;
+            
+            document.getElementById('suggestionNewGen').textContent = processedData.suggestions.newGen.count;
+            document.getElementById('suggestionCurrent').textContent = processedData.suggestions.current.count;
+            document.getElementById('suggestionRetire').textContent = processedData.suggestions.retire.count;
+
+            const suggestionList = document.getElementById('suggestionList');
+            const allSuggestions = [
+                ...processedData.suggestions.newGen.samples.map(c => ({text: c, icon: '💡'})),
+                ...processedData.suggestions.current.samples.map(c => ({text: c, icon: '👥'})),
+                ...processedData.suggestions.retire.samples.map(c => ({text: c, icon: '⏳'}))
+            ];
+             allSuggestions.forEach(s => {
+                const li = document.createElement('li');
+                li.className = 'flex items-start bg-gray-50 p-4 rounded-xl border border-gray-200';
+                li.innerHTML = `<div class="icon-style text-xl mr-4">${s.icon}</div><p>"${s.text}"</p>`;
+                suggestionList.appendChild(li);
+            });
+
+
+            const sentimentCtx = document.getElementById('sentimentChart').getContext('2d');
+            new Chart(sentimentCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['เชิงบวก', 'เชิงลบ'],
+                    datasets: [{
+                        data: [processedData.good, processedData.bad],
+                        backgroundColor: ['#087E8B', '#FF5A5F'],
+                        borderColor: '#FFFFFF',
+                        borderWidth: 4,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { size: 14, family: 'Sarabun' },
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                             titleFont: { family: 'Sarabun' },
+                             bodyFont: { family: 'Sarabun' },
+                             callbacks: {
+                                title: (tooltipItems) => {
+                                    const item = tooltipItems[0];
+                                    let label = item.chart.data.labels[item.dataIndex];
+                                    return Array.isArray(label) ? label.join(' ') : label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const thematicCtx = document.getElementById('thematicChart').getContext('2d');
+            const themeLabels = Object.keys(processedData.themes).sort((a,b) => (processedData.themes[b].good + processedData.themes[b].bad) - (processedData.themes[a].good + processedData.themes[a].bad));
+            new Chart(thematicCtx, {
+                type: 'bar',
+                data: {
+                    labels: themeLabels.map(wrapLabel),
+                    datasets: [
+                        {
+                            label: 'เชิงบวก',
+                            data: themeLabels.map(theme => processedData.themes[theme].good),
+                            backgroundColor: '#087E8B',
+                            borderRadius: 5,
+                        },
+                        {
+                            label: 'เชิงลบ',
+                            data: themeLabels.map(theme => processedData.themes[theme].bad),
+                            backgroundColor: '#FF5A5F',
+                            borderRadius: 5,
+                        }
+                    ]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { stacked: true, grid: { display: false } },
+                        y: { stacked: true, grid: { display: false }, ticks: { font: { size: 14, family: 'Sarabun' }} }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                font: { size: 14, family: 'Sarabun' },
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            titleFont: { family: 'Sarabun' },
+                            bodyFont: { family: 'Sarabun' },
+                             callbacks: {
+                                title: (tooltipItems) => {
+                                    const item = tooltipItems[0];
+                                    let label = item.chart.data.labels[item.dataIndex];
+                                    return Array.isArray(label) ? label.join(' ') : label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        };
+    </script>
+</body>
+</html>

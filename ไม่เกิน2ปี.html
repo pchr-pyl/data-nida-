@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>วิเคราะห์ความคิดเห็นพนักงาน Petro Instrument</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals & Muted Teal -->
+    <!-- Application Structure Plan: The SPA is designed as an interactive dashboard. The primary navigation allows users to filter data by employee tenure (<2 years, 2-10 years, >10 years, and All). This structure was chosen because employee tenure is the main differentiating factor in the source reports. The flow is designed to be top-down: 1. A high-level sentiment overview (Donut Chart & Key Stats). 2. A thematic analysis (Bar Chart) showing feedback distribution across the 'เป็น อยู่ คือ' framework. 3. A detailed view of individual comments and suggestions. Clicking on the bar chart filters the detailed comments, creating an intuitive drill-down experience. This layered approach allows users to grasp the big picture first, then explore specific areas of interest, which is more effective for usability than a long, static report. -->
+    <!-- Visualization & Content Choices: 1. Sentiment Overview (Goal: Inform) -> Donut Chart (Chart.js) to show the proportion of positive vs. negative feedback. Interaction: Updates with tenure filter. Justification: Quick, visual summary of overall sentiment. 2. Thematic Analysis (Goal: Compare) -> Grouped Bar Chart (Chart.js) to compare comment volumes across themes, split by positive/negative. Interaction: Bars are clickable to filter detailed comments. Justification: Effectively highlights key areas of strength and concern for each tenure group. 3. Detailed Feedback (Goal: Organize/Inform) -> Tabbed dynamic HTML lists. Interaction: Content filtered by tenure and selected theme. Justification: Organizes granular data neatly, preventing user overload and separating feedback from actionable suggestions. All charts use Chart.js/Canvas. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f8f9fa;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 45vh;
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 300px;
+            }
+        }
+        .active-filter {
+            background-color: #0c4a6e;
+            color: white;
+            border-color: #0c4a6e;
+        }
+        .inactive-filter {
+            background-color: white;
+            color: #374151;
+            border-color: #d1d5db;
+        }
+        .active-tab {
+            border-bottom: 2px solid #0c4a6e;
+            color: #0c4a6e;
+            font-weight: 600;
+        }
+        .inactive-tab {
+            color: #6b7280;
+        }
+        .card-enter {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .card-enter-active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">ผลการวิเคราะห์ความคิดเห็นพนักงาน</h1>
+            <p class="text-lg text-gray-600 mt-2">Petro Instrument Employee Engagement Survey</p>
+        </header>
+
+        <nav class="flex justify-center items-center mb-8 bg-white p-3 rounded-xl shadow-sm">
+            <div class="flex flex-wrap justify-center gap-2 md:gap-4">
+                 <button data-tenure="all" class="tenure-filter active-filter font-semibold py-2 px-4 border rounded-lg shadow-sm transition-all duration-300">ภาพรวมทั้งหมด</button>
+                 <button data-tenure="<2" class="tenure-filter inactive-filter font-semibold py-2 px-4 border rounded-lg shadow-sm transition-all duration-300">อายุงาน < 2 ปี</button>
+                 <button data-tenure="2-10" class="tenure-filter inactive-filter font-semibold py-2 px-4 border rounded-lg shadow-sm transition-all duration-300">อายุงาน 2-10 ปี</button>
+                 <button data-tenure=">10" class="tenure-filter inactive-filter font-semibold py-2 px-4 border rounded-lg shadow-sm transition-all duration-300">อายุงาน > 10 ปี</button>
+            </div>
+        </nav>
+
+        <main class="space-y-10">
+            <!-- Section 1: Overview -->
+            <section id="overview" class="p-6 bg-white rounded-xl shadow-lg">
+                <h2 class="text-2xl font-bold mb-1 text-gray-700">ภาพรวมความพึงพอใจ</h2>
+                <p class="text-gray-500 mb-6">ส่วนนี้แสดงภาพรวมของความคิดเห็นเชิงบวกและเชิงลบทั้งหมด พร้อมสถิติที่สำคัญ คุณสามารถกรองข้อมูลตามกลุ่มอายุงานเพื่อดูการเปลี่ยนแปลง</p>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
+                    <div class="lg:col-span-1 h-64 md:h-72">
+                        <canvas id="sentimentChart"></canvas>
+                    </div>
+                    <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="bg-blue-50 p-4 rounded-lg text-center border border-blue-200">
+                            <h3 class="text-lg font-semibold text-blue-800">ความคิดเห็นทั้งหมด</h3>
+                            <p id="totalComments" class="text-4xl font-bold text-blue-600">0</p>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg text-center border border-green-200">
+                            <h3 class="text-lg font-semibold text-green-800">เชิงบวก (Good Ex)</h3>
+                            <p id="goodComments" class="text-4xl font-bold text-green-600">0</p>
+                        </div>
+                        <div class="bg-red-50 p-4 rounded-lg text-center border border-red-200">
+                            <h3 class="text-lg font-semibold text-red-800">เชิงลบ (Bad Ex)</h3>
+                            <p id="badComments" class="text-4xl font-bold text-red-600">0</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 2: Thematic Analysis -->
+            <section id="thematic-analysis" class="p-6 bg-white rounded-xl shadow-lg">
+                <h2 class="text-2xl font-bold mb-1 text-gray-700">การวิเคราะห์ตามหัวข้อ "เป็น อยู่ คือ"</h2>
+                <p class="text-gray-500 mb-6">แผนภูมินี้จำแนกความคิดเห็นตามหัวข้อหลัก เพื่อให้เห็นว่าด้านใดเป็นจุดแข็งหรือด้านที่ควรพัฒนา Cick ที่แท่งกราฟเพื่อกรองดูรายละเอียดความคิดเห็นด้านล่าง</p>
+                <div class="chart-container">
+                    <canvas id="thematicChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Section 3: Detailed Feedback -->
+            <section id="detailed-feedback" class="p-6 bg-white rounded-xl shadow-lg">
+                 <div class="flex justify-between items-center mb-4 flex-wrap">
+                    <h2 class="text-2xl font-bold text-gray-700">รายละเอียดความคิดเห็น</h2>
+                    <p id="filter-status" class="text-sm text-gray-500 mt-2 md:mt-0">แสดงข้อมูล: <span class="font-semibold text-sky-700">ภาพรวมทั้งหมด</span></p>
+                </div>
+                <p class="text-gray-500 mb-6">สำรวจความคิดเห็นและข้อเสนอแนะจากพนักงานตามหัวข้อที่เลือกจากแผนภูมิด้านบน</p>
+
+                <div class="border-b border-gray-200 mb-4">
+                    <nav class="flex space-x-4" aria-label="Tabs">
+                        <button id="tab-feedback" class="tab-btn active-tab py-2 px-1 text-sm font-medium">
+                            ความคิดเห็น (Good/Bad Ex)
+                        </button>
+                        <button id="tab-suggestions" class="tab-btn inactive-tab py-2 px-1 text-sm font-medium">
+                            ข้อเสนอแนะจากพนักงาน
+                        </button>
+                    </nav>
+                </div>
+
+                <div id="feedback-content" class="space-y-3">
+                    <!-- Dynamic content here -->
+                </div>
+                <div id="suggestions-content" class="hidden space-y-3">
+                    <!-- Dynamic content here -->
+                </div>
+                 <div id="no-data-message" class="hidden text-center py-10">
+                    <p class="text-gray-500">ไม่พบข้อมูลสำหรับตัวกรองที่เลือก</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const employeeData = [
+            { tenure_group: '<2', theme: 'อยู่ดีกินดี', sub_theme: 'ได้รับสวัสดิการที่ดี', comment: 'เลือกที่นี่เพราะสวัสดิการ เห็นจากsale manager facebook สวัสดิการที่นี่ถือว่าดีมาก ถ้าเทียบกับที่อื่น', level: 'Good Ex' },
+            { tenure_group: '<2', theme: 'อยู่อย่างมี Passion', sub_theme: 'เห็นว่างานมีคุณค่า และท้าทาย', comment: 'ชอบออกแบบ วิศวะคอม ชอบออกแบบระบบ เสนอลูกค้า ไปแก้ไขปัญหาให้ลูกค้า', level: 'Good Ex' },
+            { tenure_group: '<2', theme: 'องค์กรมีนโยบายฯ', sub_theme: 'คือ ความคาดหวังขององค์กร', comment: 'ไม่ชอบการเร่งเวลา ลูกค้าตามงานไวเกินไป ขอเอกสาร', level: 'Bad Ex' },
+            { tenure_group: '<2', theme: 'อยู่ในองค์กรที่ดี', sub_theme: 'เพื่อนร่วมงานให้การสนับสนุน', comment: 'ทีมหรือเพื่อนร่วมงานก็ช่วยงานกัน', level: 'Good Ex' },
+            { tenure_group: '<2', theme: 'อยู่ในองค์กรที่ดี', sub_theme: 'หัวหน้าโดยตรงรับฟัง', comment: 'มีหัวหน้าคอยเทรนคอยสอนเรา ถามอะไรก็ตอบตลอด', level: 'Good Ex' },
+            { tenure_group: '<2', theme: 'อยู่อย่างมี Passion', sub_theme: 'เห็นว่างานมีคุณค่า และท้าทาย', comment: 'คนรุ่นใหม่ทุกวันนี้ มีgrowth mindset คนรุ่นใหม่อยากทำอะไรต่อจากเดิมมากกว่าเดิม', level: 'ข้อเสนอฯ รุ่นใหม่' },
+            { tenure_group: '<2', theme: 'อยู่ในสภาพแวดล้อมที่ดี', sub_theme: 'มีระบบงานที่ดี', comment: 'ระบบงานที่นี่ดีมาก', level: 'Good Ex' },
+            { tenure_group: '<2', theme: 'อยู่ดีกินดี', sub_theme: 'ได้รับสวัสดิการที่ดี', comment: 'อยากให้มีค่าเดินทางให้พนักงาน', level: 'ข้อเสนอฯ ปัจจุบัน' },
+            { tenure_group: '<2', theme: 'อยู่ดีกินดี', sub_theme: 'ได้รับสวัสดิการที่ดี', comment: 'อยากได้ที่จอดรถที่สะดวกกว่านี้', level: 'ข้อเสนอฯ ปัจจุบัน' },
+            { tenure_group: '<2', theme: 'อยู่ดีกินดี', sub_theme: 'ได้รับสวัสดิการที่ดี', comment: 'อยากให้มีสปา ให้เป็นgift voucher ก็ได้ให้เราไปพักผ่อน', level: 'ข้อเสนอฯ ปัจจุบัน' },
+            { tenure_group: '<2', theme: 'อยู่ในสภาพแวดล้อมที่ดี', sub_theme: 'มีระบบงานที่ดี', comment: 'อยากให้มีการอบรมเรื่องการเกษียณ ควรมีการวางแผนการเกษียณตั้งแต่เนิ่นๆ', level: 'ข้อเสนอฯ เกษียณ' },
+            { tenure_group: '<2', theme: 'อยู่ในตำแหน่งที่เหมาะสม', sub_theme: 'มีอิสระในการออกแบบงาน', comment: 'เด็กรุ่นใหม่น่าจะอยากทำงานที่อิสระมากกว่า', level: 'ข้อเสนอฯ รุ่นใหม่' },
+            { tenure_group: '2-10', theme: 'เป็นตัวตนที่แท้จริง', sub_theme: 'มีจริตตรงกับงาน', comment: 'สายงานตรงกับที่เดิมที่เคยทำอยู่', level: 'Good Ex' },
+            { tenure_group: '2-10', theme: 'อยู่อย่างมี Passion', sub_theme: 'เห็นว่างานมีคุณค่า และท้าทาย', comment: 'เปิดโลกมากขึ้น แฮปปี้ ทีมนี้รับพี่มาเปิดตลาดใหม่', level: 'Good Ex' },
+            { tenure_group: '2-10', theme: 'เป็นตัวตนที่แท้จริง', sub_theme: 'มีจริตตรงกับองค์กร', comment: 'คนที่นี่เยียวยาจิตใจ เป็นมิตร เหมือนพี่เหมือนน้อง', level: 'Good Ex' },
+            { tenure_group: '2-10', theme: 'อยู่ในสภาพแวดล้อมที่ดี', sub_theme: 'มีระบบงานที่ดี', comment: 'สิ่งที่ไม่คุ้นชิน คือ ต้องรออนุมัติหลายขั้นตอน', level: 'Bad Ex' },
+            { tenure_group: '2-10', theme: 'อยู่ดีกินดี', sub_theme: 'ได้รับสวัสดิการที่ดี', comment: 'กองทุนสำรอง เลี้ยงชีพ', level: 'Good Ex' },
+            { tenure_group: '2-10', theme: 'เป็นสุขทางใจ', sub_theme: 'ประทับใจตั้งแต่ตอนสมัคร', comment: 'ถามเลยตอนสัมภาษณ์งานเข้ามา เขาต้องการอะไร', level: 'ข้อเสนอฯ รุ่นใหม่' },
+            { tenure_group: '2-10', theme: 'อยู่ในตำแหน่งที่เหมาะสม', sub_theme: 'มีความชัดเจนในบทบาท', comment: 'อยากให้ JD ชัดเจนขึ้น', level: 'ข้อเสนอฯ ปัจจุบัน' },
+            { tenure_group: '2-10', theme: 'อยู่ในองค์กรที่ดี', sub_theme: 'หัวหน้าโดยตรงรับฟัง', comment: 'บางทีหัวหน้างานเยอะ ไม่ได้มีเวลามาดูเรา', level: 'Bad Ex' },
+            { tenure_group: '2-10', theme: 'อยู่อย่างมี Passion', sub_theme: 'เห็นว่างานมีคุณค่า และท้าทาย', comment: 'เรื่องความสนุกในงาน งานมีความท้าทาย ไม่อยากทำงานที่โต๊ะเฉยๆ', level: 'ข้อเสนอฯ รุ่นใหม่' },
+            { tenure_group: '>10', theme: 'อยู่ในสภาพแวดล้อมที่ดี', sub_theme: 'ที่ทำงานใกล้บ้าน', comment: 'การเดินทางสะดวก ไม่อยู่ในเมืองมาก', level: 'Good Ex' },
+            { tenure_group: '>10', theme: 'เป็นสุขทางใจ', sub_theme: 'ประทับใจตั้งแต่ตอนสมัคร', comment: 'เคยออกไปหาประสบการณ์แล้วกลับมาเพราะหัวหน้าชวนกลับมา', level: 'Good Ex' },
+            { tenure_group: '>10', theme: 'อยู่ในองค์กรที่ดี', sub_theme: 'เพื่อนร่วมงานให้การสนับสนุน', comment: 'ที่นี่โอเค เพื่อนร่วมงานดี', level: 'Good Ex' },
+            { tenure_group: '>10', theme: 'อยู่ดีกินดี', sub_theme: 'ได้รับสวัสดิการที่ดี', comment: 'สวัสดิการดี', level: 'Good Ex' },
+            { tenure_group: '>10', theme: 'อยู่ในตำแหน่งที่เหมาะสม', sub_theme: 'มีอิสระในการออกแบบงาน', comment: 'ชอบ- เวลาหยืดหยุ่น', level: 'Good Ex' },
+            { tenure_group: '>10', theme: 'อยู่ในองค์กรที่ดี', sub_theme: 'หัวหน้าโดยตรงรับฟัง', comment: 'หัวหน้าดี ช่วยแก้ไขปัญหา ปรึกษาได้', level: 'Good Ex' },
+            { tenure_group: '>10', theme: 'อยู่ในสภาพแวดล้อมที่ดี', sub_theme: 'มีระบบงานที่ดี', comment: 'ไม่ชอบระบบอีเมล จำกัดพื้นที่ 50G ไม่สามารถเก็บงานเก่าไว้ได้', level: 'Bad Ex' },
+            { tenure_group: '>10', theme: 'เป็นตัวตนที่แท้จริง', sub_theme: 'มีจริตตรงกับองค์กร', comment: 'ทำสื่อเว็บไซต์ให้ดูทันสมัย', level: 'ข้อเสนอฯ รุ่นใหม่' },
+            { tenure_group: '>10', theme: 'อยู่ดีกินดี', sub_theme: 'ได้รับสวัสดิการที่ดี', comment: 'ให้เพิ่มเบี้ยเลี้ยงมากขึ้น 300 บาทไม่พอ', level: 'ข้อเสนอฯ ปัจจุบัน' },
+            { tenure_group: '>10', theme: 'อยู่ดีกินดี', sub_theme: 'มีเวลาส่วนตัว', comment: 'อยากให้หยุดตามที่ราชการประกาศ', level: 'ข้อเสนอฯ ปัจจุบัน' },
+        ];
+
+        const THEMES = ['อยู่ดีกินดี', 'อยู่อย่างมี Passion', 'อยู่ในองค์กรที่ดี', 'อยู่ในสภาพแวดล้อมที่ดี', 'อยู่ในตำแหน่งที่เหมาะสม', 'เป็นตัวตนที่แท้จริง', 'องค์กรมีนโยบายฯ', 'เป็นสุขทางใจ'];
+
+        let sentimentChart, thematicChart;
+        let currentState = {
+            tenure: 'all',
+            theme: 'all',
+            tab: 'feedback'
+        };
+
+        const themeColors = {
+            'Good Ex': 'rgba(22, 163, 74, 0.7)',
+            'Bad Ex': 'rgba(220, 38, 38, 0.7)',
+        };
+
+        const themeBorderColors = {
+            'Good Ex': 'rgba(22, 163, 74, 1)',
+            'Bad Ex': 'rgba(220, 38, 38, 1)',
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeCharts();
+            setupEventListeners();
+            renderApp();
+        });
+
+        function setupEventListeners() {
+            document.querySelectorAll('.tenure-filter').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    currentState.tenure = e.target.dataset.tenure;
+                    currentState.theme = 'all'; 
+                    document.querySelectorAll('.tenure-filter').forEach(btn => {
+                        btn.classList.remove('active-filter');
+                        btn.classList.add('inactive-filter');
+                    });
+                    e.target.classList.add('active-filter');
+                    e.target.classList.remove('inactive-filter');
+                    renderApp();
+                });
+            });
+
+            document.querySelectorAll('.tab-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    currentState.tab = e.target.id.split('-')[1];
+                    document.querySelectorAll('.tab-btn').forEach(btn => {
+                        btn.classList.remove('active-tab');
+                        btn.classList.add('inactive-tab');
+                    });
+                     e.target.classList.add('active-tab');
+                    e.target.classList.remove('inactive-tab');
+                    renderDetails();
+                });
+            });
+        }
+        
+        function filterData() {
+            let data = employeeData;
+            if (currentState.tenure !== 'all') {
+                data = data.filter(d => d.tenure_group === currentState.tenure);
+            }
+            if (currentState.theme !== 'all') {
+                data = data.filter(d => d.theme === currentState.theme);
+            }
+            return data;
+        }
+
+        function renderApp() {
+            const filteredData = filterData();
+            updateStats(filteredData);
+            updateSentimentChart(filteredData);
+            updateThematicChart(filterData());
+            renderDetails();
+            updateFilterStatus();
+        }
+
+        function updateFilterStatus() {
+            const tenureText = currentState.tenure === 'all' ? 'ภาพรวมทั้งหมด' : `อายุงาน ${currentState.tenure.replace('<','< ').replace('>','> ')} ปี`;
+            const themeText = currentState.theme === 'all' ? '' : ` | หัวข้อ: ${currentState.theme}`;
+            document.getElementById('filter-status').querySelector('span').textContent = `${tenureText}${themeText}`;
+        }
+        
+        function updateStats(data) {
+            const goodComments = data.filter(d => d.level === 'Good Ex').length;
+            const badComments = data.filter(d => d.level === 'Bad Ex').length;
+            document.getElementById('totalComments').textContent = goodComments + badComments;
+            document.getElementById('goodComments').textContent = goodComments;
+            document.getElementById('badComments').textContent = badComments;
+        }
+
+        function initializeCharts() {
+            const sentimentCtx = document.getElementById('sentimentChart').getContext('2d');
+            sentimentChart = new Chart(sentimentCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['เชิงบวก (Good Ex)', 'เชิงลบ (Bad Ex)'],
+                    datasets: [{
+                        data: [0, 0],
+                        backgroundColor: [themeColors['Good Ex'], themeColors['Bad Ex']],
+                        borderColor: ['#ffffff'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += context.parsed;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const thematicCtx = document.getElementById('thematicChart').getContext('2d');
+            thematicChart = new Chart(thematicCtx, {
+                type: 'bar',
+                data: { labels: THEMES, datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    scales: {
+                        x: { beginAtZero: true, stacked: true },
+                        y: { stacked: true }
+                    },
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const chartElement = elements[0];
+                            const clickedTheme = thematicChart.data.labels[chartElement.index];
+                            currentState.theme = (currentState.theme === clickedTheme) ? 'all' : clickedTheme;
+                            renderApp();
+                        }
+                    }
+                }
+            });
+        }
+        
+        function updateSentimentChart(data) {
+            const goodCount = data.filter(d => d.level === 'Good Ex').length;
+            const badCount = data.filter(d => d.level === 'Bad Ex').length;
+            sentimentChart.data.datasets[0].data = [goodCount, badCount];
+            sentimentChart.update();
+        }
+        
+        function updateThematicChart(data) {
+             const dataByTheme = THEMES.map(theme => {
+                const themeData = data.filter(d => d.theme === theme);
+                return {
+                    good: themeData.filter(d => d.level === 'Good Ex').length,
+                    bad: themeData.filter(d => d.level === 'Bad Ex').length,
+                };
+            });
+
+            thematicChart.data.datasets = [
+                {
+                    label: 'เชิงบวก (Good Ex)',
+                    data: dataByTheme.map(d => d.good),
+                    backgroundColor: themeColors['Good Ex'],
+                    borderColor: themeBorderColors['Good Ex'],
+                    borderWidth: 1
+                },
+                {
+                    label: 'เชิงลบ (Bad Ex)',
+                    data: dataByTheme.map(d => d.bad),
+                    backgroundColor: themeColors['Bad Ex'],
+                    borderColor: themeBorderColors['Bad Ex'],
+                    borderWidth: 1
+                }
+            ];
+            thematicChart.update();
+        }
+
+        function renderDetails() {
+            const data = filterData();
+            const feedbackData = data.filter(d => d.level === 'Good Ex' || d.level === 'Bad Ex');
+            const suggestionData = data.filter(d => d.level.startsWith('ข้อเสนอ'));
+            
+            const feedbackContent = document.getElementById('feedback-content');
+            const suggestionsContent = document.getElementById('suggestions-content');
+            const noDataMsg = document.getElementById('no-data-message');
+            
+            feedbackContent.innerHTML = '';
+            suggestionsContent.innerHTML = '';
+            
+            feedbackData.forEach(item => {
+                const card = createCard(item);
+                feedbackContent.appendChild(card);
+            });
+            
+            suggestionData.forEach(item => {
+                const card = createCard(item);
+                suggestionsContent.appendChild(card);
+            });
+            
+            const isFeedbackVisible = currentState.tab === 'feedback';
+            feedbackContent.classList.toggle('hidden', !isFeedbackVisible);
+            suggestionsContent.classList.toggle('hidden', isFeedbackVisible);
+
+            const hasVisibleContent = (isFeedbackVisible && feedbackData.length > 0) || (!isFeedbackVisible && suggestionData.length > 0);
+            noDataMsg.classList.toggle('hidden', hasVisibleContent);
+            
+            // Add fade-in animation
+            document.querySelectorAll('.detail-card').forEach((card, index) => {
+                card.classList.add('card-enter');
+                setTimeout(() => card.classList.add('card-enter-active'), index * 50);
+            });
+        }
+
+        function createCard(item) {
+            const card = document.createElement('div');
+            card.className = 'detail-card p-4 rounded-lg border';
+            
+            let borderColor, tagBgColor, tagTextColor;
+            if (item.level === 'Good Ex') {
+                borderColor = 'border-green-200'; tagBgColor = 'bg-green-100'; tagTextColor = 'text-green-800';
+            } else if (item.level === 'Bad Ex') {
+                borderColor = 'border-red-200'; tagBgColor = 'bg-red-100'; tagTextColor = 'text-red-800';
+            } else {
+                borderColor = 'border-sky-200'; tagBgColor = 'bg-sky-100'; tagTextColor = 'text-sky-800';
+            }
+
+            card.classList.add(borderColor, 'bg-gray-50');
+
+            let levelText = item.level;
+            if (item.level.startsWith('ข้อเสนอ')) {
+                levelText = item.level.replace('ข้อเสนอฯ', 'ข้อเสนอแนะ:');
+            }
+
+            card.innerHTML = `
+                <p class="text-gray-700">${item.comment}</p>
+                <div class="flex flex-wrap items-center justify-between text-xs text-gray-500 mt-2">
+                    <span>${item.theme} / ${item.sub_theme}</span>
+                    <span class="font-medium py-0.5 px-2 rounded ${tagBgColor} ${tagTextColor}">${levelText}</span>
+                </div>
+            `;
+            return card;
+        }
+
+    </script>
+</body>
+</html>
